@@ -8,6 +8,7 @@ import torch
 from dataset import *
 from models import *
 from args import get_args
+from loss import LossAndMetric
 from utils import *
 
 class Model(object):
@@ -15,6 +16,7 @@ class Model(object):
         self.saved_model_path = args.saved_model_path
         self.args = args
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        self.loss = LossAndMetric(args)
         for name, arg in vars(self.args).items():
             print('%s: %s' % (name, arg))
 
@@ -271,9 +273,9 @@ class Model(object):
                 labels,
                 preds,
                 probs)
-        high_quality_res = res[(res.hc >= self.args.hc_threshold) & (res.conf >= self.args.conf_threshold)]
-        data_path = os.path.join(self.args.result_path, 'result.csv')
-        high_quality_data_path = os.path.join(self.args.result_path, 'high_quality_result.csv')
+        high_quality_res = res[(res.hc>=0.3) & (res.conf>=0.8)]
+        data_path = os.path.join(self.args.result_path, 'res1.csv')
+        high_quality_data_path = os.path.join(self.args.result_path, 'high_quality_res1.csv')
         res.to_csv(data_path, sep='\t', index=False, header=False)
         high_quality_res.to_csv(high_quality_data_path, sep='\t', index=False, header=False)
 
@@ -288,4 +290,3 @@ if __name__ == '__main__':
         model.test(dataset)
     else:
         model.train_agent(dataset)
-        model.test(dataset)

@@ -3,3 +3,5 @@
 /saved_model/*
 /data/*.txt
 preprocess.py
+loss.py
+.gitignore

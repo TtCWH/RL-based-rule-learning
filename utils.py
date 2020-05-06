@@ -1,11 +1,23 @@
 # coding=utf-8
 
+import os
+import pdb
+import time
+import random
+
+# import numpy as np
+# import matplotlib.pyplot as plt
+# import pylab as pl
+# from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+
+from argparse import ArgumentParser
+import torch
+
+# coding=utf-8
 """
 Utilizations for common usages.
 """
-
 import re
-import time
 import os
 import pdb
 import random
@@ -235,6 +247,67 @@ def check_rule(dataset, res):
     data = dict(zip(['body', 'head', 'hc', 'conf', 'prob'], [bodys, heads, hcs, confs, probs]))
     return pd.DataFrame(data=data)
 
+def sort_file(data_path):
+    data = pd.read_csv(data_path, sep='\t', header=None)
+    data.columns = ['pvs', 'ppp', 'scene', 'num']
+
+    data = data[['scene', 'pvs', 'num']]
+
+    data.scene = data.scene.apply(lambda x: x.split('==')[-1])
+
+    ans = []
+
+    for name, group in data.groupby('scene'):
+        group = group.sort_values(by='num', ascending=False)
+        ans.append(group)
+
+    ans = pd.concat(ans)
+    ans['ppp'] = '<=='
+    ans = ans[['scene', 'ppp', 'pvs', 'num']]
+    ans.to_csv(
+        data_path.split('.')[0] +
+        '.csv',
+        sep='\t',
+        header=None,
+        index=None)
+
+
+def extract_rules(folder, prob_thre, policy):
+    from collections import defaultdict
+
+    count = defaultdict(int)
+
+    print('start counting.......')
+
+    with open('.{}/case_cnt_{}'.format(folder, policy), encoding='utf-8') as f:
+        for _ in f.readlines():
+            prob = float(re.search('prob:.*', _).group().split(':')[-1])
+            if prob < prob_thre:
+                continue
+            _ = _.split()
+            if len(_) < 4:
+                continue
+            rule = set()
+            for elem in _[0].split(','):
+                rule.add(elem.strip())
+            rule.add(_[-2].strip())
+            count[frozenset(rule)] += 1
+
+    print('end counting....')
+
+    for rule, num in sorted(count.items(), key=lambda x: x[1], reverse=True):
+        rule = list(rule)
+        pos = -1
+        for i, elem in enumerate(rule):
+            if elem.startswith('场景'):
+                pos = i
+                break
+        with open('.{}/raw_rules_{}.txt'.format(folder, policy), 'a', encoding='utf-8') as f:
+            f.write(
+                '{}\t-->>\t{}\t{}\n'.format(', '.join(rule[:pos] + rule[pos + 1:]), rule[pos], num))
+
+    cal_sc(folder, policy)
+
 
 def cal_support(txt, dataset):
     res = 0
@@ -309,6 +382,53 @@ def get_timestamp():
     return timestamp
 
 
+def search_best_threhold(similarities, label):
+    # pdb.set_trace()
+    high = similarities[label == 1].mean().item()
+    low = similarities[label == 0].mean().item()
+    ans_dist = low
+    ans_f1 = 0
+    ans_p = 0
+    ans_r = 0
+    ans_acc = 0
+    cur_dist = ans_dist + 0.001
+    while cur_dist < high:
+        pred = similarities > cur_dist
+        precision, recall, f1, acc = cal_f1(pred, label)
+        if acc > ans_acc:
+            ans_f1 = f1
+            ans_dist = cur_dist
+            ans_p = precision
+            ans_r = recall
+            ans_acc = acc
+        cur_dist += 0.01
+    return ans_dist, ans_p, ans_r, ans_f1, ans_acc
+
+def cal_f1(pred, label):
+    # TP    predict 和 label 同时为1
+    TP = ((pred == 1) & (label == 1)).sum().item()*1.0
+    # TN    predict 和 label 同时为0
+    TN = ((pred == 0) & (label == 0)).sum().item()*1.0
+    # FN    predict 0 label 1
+    FN = ((pred == 0) & (label == 1)).sum().item()*1.0
+    # FP    predict 1 label 0
+    FP = ((pred == 1) & (label == 0)).sum().item()*1.0
+    # pdb.set_trace()
+    precision = 0
+    f1 = 0
+    recall = 0
+    acc = 0
+    if TP + FP > 0:
+        precision = TP / (TP + FP)
+    if TP + FN > 0:
+        recall = TP / (TP + FN)
+    if precision + recall > 0:
+        f1 = 2 * precision * recall / (precision + recall)
+    if TP + TN + FP + FN > 0:
+        acc = (TP + TN) / (TP + TN + FP + FN)
+    return precision, recall, f1, acc
+
+
 def set_seed(seed):
     """
     Freeze every seed.
@@ -321,4 +441,11 @@ def set_seed(seed):
 
 
 if __name__ == '__main__':
-    pass
+    args.data_path = args.local_data_path
+    dataset = NLPDataset(args)
+    res=check_rule(dataset, './data/res.csv')
+    high_quality_res = res[(res.hc >= 0.3) & (res.conf >= 0.8)]
+    data_path = 'res.csv'
+    high_quality_data_path = 'high_quality_res.csv'
+    res.to_csv(data_path, sep='\t', index=False, header=False)
+    high_quality_res.to_csv(high_quality_data_path, sep='\t', index=False, header=False)

@@ -48,8 +48,8 @@ class NLPDataset(object):
             os.remove(value_path)
         if os.path.exists(scene_path):
             os.remove(scene_path)
-        train_path = os.path.join(self.data_path, 'train.csv')
-        test_path = os.path.join(self.data_path, 'test.csv')
+        train_path = os.path.join(self.data_path, 'train.txt')
+        test_path = os.path.join(self.data_path, 'test.txt')
         items = {}
         property2id = {}
         value2id = {}

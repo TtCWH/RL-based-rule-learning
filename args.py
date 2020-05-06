@@ -37,9 +37,6 @@ def get_args():
     parser.add_argument('--entropy_prop', type=float, default=3e-2)
     parser.add_argument('--entropy_min', type=float, default=1e-30)
 
-    parser.add_argument('--hc_threshold', type=float, default=0.2)
-    parser.add_argument('--conf_threshold', type=float, default=0.8)
-
     # data
     parser.add_argument('--hit', type=int, default=1)
 
