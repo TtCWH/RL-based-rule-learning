@@ -1,7 +1,6 @@
-*.zip
 /result/*
 /saved_model/*
-/data/*.txt
+/data/
 preprocess.py
 loss.py
-.gitignore
+.*
