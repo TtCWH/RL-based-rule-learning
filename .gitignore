@@ -1,0 +1,5 @@
+*.zip
+/result/*
+/saved_model/*
+/data/*.txt
+preprocess.py
