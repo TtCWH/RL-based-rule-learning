@@ -1,7 +1,7 @@
 # RL-based-rule-learning
 
 ## RUN
-Unzip data.zip -d data
+Unzip data.zip -d data &&
 python3 main.py –-batch_size 256 –-local_data_path ../data
 
 ## dataset
