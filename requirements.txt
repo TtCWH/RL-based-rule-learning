@@ -1,5 +1,5 @@
 nltk==3.4.5
-numpy==1.17.4
+numpy==1.22.0
 pandas==0.25.3
 torch==1.1.0
 unicodedata2==12.1.0
